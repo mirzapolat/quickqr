@@ -1,0 +1,17 @@
+{
+  "name": "Quick QR-Code Generator",
+  "short_name": "quickqr",
+  "description": "The fastest QR code generator. Paste a link, get a QR code.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

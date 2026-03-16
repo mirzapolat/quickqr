@@ -1,0 +1,799 @@
+/* ─── Layout ─────────────────────────────────────────────── */
+
+.app {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 100svh;
+  position: relative;
+  overflow: hidden;
+  transition: padding-right 0.35s cubic-bezier(0.32, 0, 0.2, 1);
+}
+
+.app.panel-is-open {
+  padding-right: var(--panel-w);
+}
+
+.main-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px 80px;
+  transition: transform 0.35s cubic-bezier(0.32, 0, 0.2, 1);
+  min-height: 100svh;
+}
+
+.center-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.center-stack .qr-area {
+  margin-top: 24px;
+}
+
+/* ─── Input ──────────────────────────────────────────────── */
+
+.input-row {
+  width: 100%;
+}
+
+.input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.qr-input {
+  width: 100%;
+  padding: 12px 40px 12px 0;
+  font-size: 15px;
+  font-family: var(--font);
+  font-weight: 400;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--border);
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.15s ease;
+  caret-color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.qr-input::placeholder {
+  color: var(--text-3);
+  font-weight: 300;
+}
+
+.qr-input:focus {
+  border-bottom-color: var(--border-focus);
+}
+
+.go-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%) scale(0.7);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--text);
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+
+.go-btn.go-visible {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+  pointer-events: all;
+}
+
+.go-btn:hover {
+  background: #333;
+}
+
+/* ─── Intro text ─────────────────────────────────────────── */
+
+.intro-text {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-title {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.app-sub {
+  font-size: 13.5px;
+  color: var(--text-3);
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+/* ─── QR Display ─────────────────────────────────────────── */
+
+.qr-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.qr-display {
+  opacity: 0;
+  transform: scale(0.94) translateY(6px);
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.3s cubic-bezier(0.34, 1.26, 0.64, 1),
+              transform 0.3s cubic-bezier(0.34, 1.26, 0.64, 1),
+              max-height 0.35s cubic-bezier(0.32, 0, 0.2, 1);
+  pointer-events: none;
+  border-radius: 8px;
+}
+
+.qr-display.qr-visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  max-height: 640px;
+  pointer-events: all;
+  overflow: visible;
+}
+
+.qr-display.qr-updating {
+  opacity: 0.55;
+  transform: scale(0.97);
+}
+
+.qr-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+}
+
+.qr-inner svg,
+.qr-inner canvas {
+  display: block;
+  border-radius: 6px;
+}
+
+.qr-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.qr-hint {
+  font-size: 12px;
+  color: var(--text-3);
+  font-weight: 400;
+}
+
+.qr-actions-sep {
+  font-size: 12px;
+  color: var(--text-3);
+  opacity: 0.5;
+}
+
+/* ─── Download ───────────────────────────────────────────── */
+
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: var(--font);
+  font-weight: 400;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+  letter-spacing: -0.01em;
+  animation: fadeUp 0.25s ease both;
+}
+
+.download-btn:hover {
+  color: var(--text-2);
+  background: var(--bg-off);
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Reset Button ───────────────────────────────────────── */
+
+.reset-page-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px 7px 10px;
+  font-size: 12.5px;
+  font-family: var(--font);
+  font-weight: 500;
+  color: var(--text-3);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 100;
+  letter-spacing: -0.01em;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity 0.2s ease, transform 0.2s ease, color 0.12s, background 0.12s, border-color 0.12s;
+}
+
+.reset-page-btn.reset-page-visible {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+.reset-page-btn:hover {
+  color: var(--text-2);
+  background: var(--bg-off);
+  border-color: var(--border-focus);
+}
+
+/* ─── Advanced Toggle ────────────────────────────────────── */
+
+.advanced-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px 7px 10px;
+  font-size: 12.5px;
+  font-family: var(--font);
+  font-weight: 500;
+  color: var(--text-2);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s, right 0.35s cubic-bezier(0.32, 0, 0.2, 1);
+  z-index: 100;
+  letter-spacing: -0.01em;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.advanced-toggle:hover {
+  background: var(--bg-off);
+  color: var(--text);
+  border-color: var(--border-focus);
+}
+
+.advanced-toggle.toggle-active {
+  color: var(--text);
+  background: var(--bg-off);
+  right: calc(var(--panel-w) + 12px);
+}
+
+/* ─── Advanced Panel ─────────────────────────────────────── */
+
+.advanced-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: var(--panel-w);
+  height: 100%;
+  background: var(--bg-off);
+  border-left: 1.5px solid var(--border);
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0, 0.2, 1);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+}
+
+.advanced-panel.panel-open {
+  transform: translateX(0);
+}
+
+.panel-scroll {
+  overflow-y: auto;
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1.5px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.reset-btn {
+  font-size: 11.5px;
+  font-family: var(--font);
+  color: var(--text-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  transition: color 0.12s, background 0.12s;
+}
+
+.reset-btn:hover {
+  color: var(--text-2);
+  background: var(--border);
+}
+
+/* ─── Panel Sections ─────────────────────────────────────── */
+
+.panel-section {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-section:last-child {
+  border-bottom: none;
+}
+
+.section-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.label-value {
+  font-weight: 400;
+  color: var(--text-3);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: -2px;
+}
+
+/* ─── Segmented Control ──────────────────────────────────── */
+
+.segmented {
+  display: flex;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+  gap: 0;
+}
+
+.seg-btn {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: 12px;
+  font-family: var(--font);
+  font-weight: 400;
+  color: var(--text-2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.seg-btn:last-child {
+  border-right: none;
+}
+
+.seg-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.seg-btn.seg-active {
+  background: var(--text);
+  color: white;
+  font-weight: 500;
+}
+
+/* ─── Color Pickers ──────────────────────────────────────── */
+
+.color-row {
+  display: flex;
+  gap: 10px;
+}
+
+.color-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.color-label {
+  font-size: 11px;
+  color: var(--text-3);
+  font-weight: 400;
+}
+
+.color-picker-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 8px;
+  transition: border-color 0.12s;
+  cursor: pointer;
+}
+
+.color-picker-wrap:focus-within {
+  border-color: var(--border-focus);
+}
+
+.color-input {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  flex-shrink: 0;
+}
+
+.color-input::-webkit-color-swatch-wrapper { padding: 0; }
+.color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
+.color-hex {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ─── Range Slider ───────────────────────────────────────── */
+
+.range-input {
+  width: 100%;
+  height: 4px;
+  appearance: none;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.range-input::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.range-input::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.25);
+}
+
+/* ─── Sub Fields (WiFi / Email) ──────────────────────────── */
+
+.sub-fields {
+  gap: 6px !important;
+}
+
+.sub-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  outline: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.sub-input::placeholder {
+  color: var(--text-3);
+}
+
+.sub-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px rgba(26,26,24,0.05);
+}
+
+.sub-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: var(--text);
+}
+
+/* ─── Logo Upload ────────────────────────────────────────── */
+
+.logo-drop {
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-drop:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-focus);
+}
+
+.logo-drop-hint {
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.logo-preview-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.logo-preview {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.logo-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text);
+  color: white;
+  border: none;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* ─── Toast ──────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--text);
+  color: white;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+  z-index: 200;
+  letter-spacing: -0.01em;
+}
+
+.toast.toast-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ─── Panel overlay (mobile) ─────────────────────────────── */
+
+.panel-overlay {
+  display: none;
+}
+
+/* ─── Drag handle ────────────────────────────────────────── */
+
+.panel-drag-handle {
+  display: none;
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
+
+/* ─── QR scaling ─────────────────────────────────────────── */
+
+.qr-inner svg,
+.qr-inner canvas {
+  max-width: calc(100vw - 48px);
+  height: auto;
+}
+
+/* ─── Mobile ─────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* Prevent iOS input zoom — needs font-size >= 16px */
+  .qr-input {
+    font-size: 16px;
+  }
+
+  /* Tighter vertical padding so content sits better */
+  .main-area {
+    padding: 32px 20px 100px;
+    align-items: flex-start;
+    padding-top: max(32px, 20svh);
+  }
+
+  .center-stack {
+    gap: 20px;
+    padding: 0 24px;
+  }
+
+  .center-stack .qr-area {
+    margin-top: 24px;
+  }
+
+  /* Bigger slider thumb for touch */
+  .range-input::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Bigger segmented button tap targets */
+  .seg-btn {
+    padding: 9px 4px;
+    font-size: 13px;
+  }
+
+  /* Bigger sub-inputs for touch */
+  .sub-input {
+    padding: 11px 12px;
+    font-size: 16px; /* prevent iOS zoom */
+  }
+
+  /* Advanced toggle stays at bottom-right, above panel when open */
+  .advanced-toggle {
+    bottom: 16px;
+    right: 16px;
+    padding: 9px 14px 9px 12px;
+    font-size: 13px;
+    transition: background 0.12s, color 0.12s, border-color 0.12s,
+                bottom 0.35s cubic-bezier(0.32, 0, 0.2, 1);
+  }
+
+  .advanced-toggle.toggle-active {
+    right: 16px;
+    bottom: calc(75svh + 12px);
+  }
+
+  /* Panel as bottom sheet */
+  .advanced-panel {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 75svh;
+    border-left: none;
+    border-top: 1.5px solid var(--border);
+    transform: translateY(100%);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.08);
+  }
+
+  .advanced-panel.panel-open {
+    transform: translateY(0);
+  }
+
+  .panel-drag-handle {
+    display: block;
+  }
+
+  /* Dim background when panel is open */
+  .panel-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.15);
+    z-index: 80;
+    animation: fadeIn 0.2s ease both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* No right padding push on mobile (panel overlays instead) */
+  .app.panel-is-open {
+    padding-right: 0;
+  }
+
+  /* Toast above toggle */
+  .toast {
+    bottom: 72px;
+  }
+}
