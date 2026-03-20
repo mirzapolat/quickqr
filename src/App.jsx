@@ -74,7 +74,7 @@ export default function App() {
   const handleQRClick = async () => {
     if (!qrData) return
     try {
-      await navigator.clipboard.writeText(inputValue)
+      await navigator.clipboard.writeText(qrData)
       showToast('Copied to clipboard')
     } catch {
       showToast('Could not copy')
