@@ -193,6 +193,18 @@ export default function App() {
       </button>
 
       <div className={`toast ${toast ? 'toast-visible' : ''}`}>{toast}</div>
+
+      <a
+        className="support-link"
+        href="https://donate.stripe.com/aFa8wO78f6zndFp2xF0kE03"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 14s-6-3.9-6-8a4 4 0 0 1 6-3.44A4 4 0 0 1 14 6c0 4.1-6 8-6 8z"/>
+        </svg>
+        Support this tool
+      </a>
     </div>
   )
 }
