@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Env / secrets (real values live on the VPS, never committed)
+.env
+.env.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -1,0 +1,27 @@
+# quickqr — single self-hosted container serving the static SPA.
+# Fronted by an external Traefik instance (TLS + routing managed outside this project).
+#
+#   docker compose up --build -d
+
+services:
+  quickqr:
+    build:
+      context: .
+    image: quickqr
+    expose:
+      - "80"
+    networks:
+      - home
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.quickqr.rule: "Host(`qr.mirzapolat.com`)"
+      traefik.http.routers.quickqr.entrypoints: websecure
+      traefik.http.routers.quickqr.tls.certresolver: letsencrypt
+      traefik.http.routers.quickqr.middlewares: secure-headers@file,compress@file
+      traefik.http.services.quickqr.loadbalancer.server.port: "80"
+    restart: unless-stopped
+
+# Joins the existing Traefik network (created/managed outside this project).
+networks:
+  home:
+    external: true
