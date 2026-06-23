@@ -27,6 +27,16 @@ export default function App() {
     }
   }, [settings])
 
+  // Collapse the advanced panel on Escape
+  useEffect(() => {
+    if (!advancedOpen) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setAdvancedOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [advancedOpen])
+
   const showToast = (msg) => {
     clearTimeout(toastTimer.current)
     setToast(msg)
@@ -72,12 +82,16 @@ export default function App() {
   }
 
   const handleQRClick = async () => {
-    if (!qrData) return
+    if (!qrData || !qrRef.current) return
     try {
-      await navigator.clipboard.writeText(qrData)
-      showToast('Copied to clipboard')
+      const blob = await qrRef.current.getPngBlob()
+      if (!blob) throw new Error('no image')
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob })
+      ])
+      showToast('Copied image to clipboard')
     } catch {
-      showToast('Could not copy')
+      showToast('Could not copy image')
     }
   }
 
@@ -136,7 +150,7 @@ export default function App() {
             className="qr-area"
             onClick={handleQRClick}
             style={{ cursor: qrVisible ? 'pointer' : 'default' }}
-            title={qrVisible ? 'Click to copy link' : ''}
+            title={qrVisible ? 'Click to copy image' : ''}
           >
             <QRDisplay
               ref={qrRef}
@@ -146,7 +160,7 @@ export default function App() {
             />
             {qrVisible && (
               <div className="qr-actions">
-                <span className="qr-hint">Click to copy</span>
+                <span className="qr-hint">Click to copy image</span>
                 <span className="qr-actions-sep">·</span>
                 <button className="download-btn" onClick={e => { e.stopPropagation(); handleDownload() }}>
                   <svg width="13" height="13" viewBox="0 0 16 16" fill="none">

@@ -12,6 +12,10 @@ const QRDisplay = forwardRef(function QRDisplay({ data, settings, visible }, ref
       if (qrRef.current) {
         qrRef.current.download({ name: 'qrcode', extension: format || settings.downloadFormat })
       }
+    },
+    getPngBlob: async () => {
+      if (!qrRef.current) return null
+      return qrRef.current.getRawData('png')
     }
   }))
 
