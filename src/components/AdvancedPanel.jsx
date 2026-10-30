@@ -1,12 +1,6 @@
 import { useRef } from 'react'
-
-const CONTENT_TYPES = [
-  { value: 'url', label: 'URL' },
-  { value: 'text', label: 'Text' },
-  { value: 'email', label: 'Email' },
-  { value: 'phone', label: 'Phone' },
-  { value: 'wifi', label: 'Wi-Fi' },
-]
+import { CONTENT_TYPES } from '../lib/contentTypes'
+import ContentFields from './ContentFields'
 
 const DOT_STYLES = [
   { value: 'square', label: 'Square' },
@@ -16,43 +10,91 @@ const DOT_STYLES = [
 
 const ERROR_LEVELS = ['L', 'M', 'Q', 'H']
 
-export default function AdvancedPanel({ open, settings, onUpdate, onReset }) {
+export default function AdvancedPanel({ open, settings, onUpdate, onReset, onClose, onCopyStyleLink }) {
   const logoInputRef = useRef(null)
+  const panelRef = useRef(null)
+  const dragRef = useRef(null)
+
+  // Swipe the bottom sheet down to dismiss it (mobile).
+  const handleTouchStart = (e) => {
+    dragRef.current = { startY: e.touches[0].clientY, dy: 0 }
+    panelRef.current.style.transition = 'none'
+  }
+
+  const handleTouchMove = (e) => {
+    if (!dragRef.current) return
+    const dy = Math.max(0, e.touches[0].clientY - dragRef.current.startY)
+    dragRef.current.dy = dy
+    panelRef.current.style.transform = `translateY(${dy}px)`
+  }
+
+  const handleTouchEnd = () => {
+    if (!dragRef.current) return
+    const { dy } = dragRef.current
+    dragRef.current = null
+    panelRef.current.style.transition = ''
+    panelRef.current.style.transform = ''
+    if (dy > 80) onClose()
+  }
+
+  // Read the logo as a data URL (not a blob: URL) so it survives reloads
+  // when settings are persisted.
+  const loadLogo = (file) => {
+    if (!file || !file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = () => onUpdate('logoUrl', reader.result)
+    reader.readAsDataURL(file)
+  }
 
   const handleLogoUpload = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const url = URL.createObjectURL(file)
-    onUpdate('logoUrl', url)
+    loadLogo(e.target.files?.[0])
+    e.target.value = ''
   }
 
   const handleLogoDrop = (e) => {
     e.preventDefault()
-    const file = e.dataTransfer.files?.[0]
-    if (!file) return
-    const url = URL.createObjectURL(file)
-    onUpdate('logoUrl', url)
+    loadLogo(e.dataTransfer.files?.[0])
   }
 
   return (
-    <aside className={`advanced-panel ${open ? 'panel-open' : ''}`}>
-      <div className="panel-drag-handle" />
-      <div className="panel-scroll">
+    <aside
+      ref={panelRef}
+      className={`advanced-panel ${open ? 'panel-open' : ''}`}
+      aria-label="Customize QR code"
+      inert={!open}
+    >
+      <div
+        className="panel-grab"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+      >
+        <div className="panel-drag-handle" />
         <div className="panel-header">
-          <span className="panel-title">Advanced</span>
-          <button className="reset-btn" onClick={onReset} title="Reset to defaults">
-            Reset
-          </button>
+          <span className="panel-title">Customize</span>
+          <div className="panel-header-actions">
+            <button className="reset-btn" onClick={onReset} title="Reset to defaults">
+              Reset
+            </button>
+            <button className="done-btn" onClick={onClose}>
+              Done
+            </button>
+          </div>
         </div>
+      </div>
+      <div className="panel-scroll">
 
         {/* Content Type */}
         <section className="panel-section">
           <label className="section-label">Content Type</label>
-          <div className="segmented">
+          <div className="chips" role="radiogroup" aria-label="Content type">
             {CONTENT_TYPES.map(ct => (
               <button
                 key={ct.value}
-                className={`seg-btn ${settings.contentType === ct.value ? 'seg-active' : ''}`}
+                role="radio"
+                aria-checked={settings.contentType === ct.value}
+                className={`chip ${settings.contentType === ct.value ? 'chip-active' : ''}`}
                 onClick={() => onUpdate('contentType', ct.value)}
               >
                 {ct.label}
@@ -61,75 +103,15 @@ export default function AdvancedPanel({ open, settings, onUpdate, onReset }) {
           </div>
         </section>
 
-        {/* WiFi fields */}
-        {settings.contentType === 'wifi' && (
-          <section className="panel-section sub-fields">
-            <input
-              className="sub-input"
-              placeholder="Network name (SSID)"
-              value={settings.wifiSSID}
-              onChange={e => onUpdate('wifiSSID', e.target.value)}
-            />
-            <input
-              className="sub-input"
-              placeholder="Password"
-              type="password"
-              value={settings.wifiPassword}
-              onChange={e => onUpdate('wifiPassword', e.target.value)}
-            />
-            <div className="segmented">
-              {['WPA', 'WEP', 'none'].map(enc => (
-                <button
-                  key={enc}
-                  className={`seg-btn ${settings.wifiEncryption === enc ? 'seg-active' : ''}`}
-                  onClick={() => onUpdate('wifiEncryption', enc)}
-                >
-                  {enc === 'none' ? 'Open' : enc}
-                </button>
-              ))}
-            </div>
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={settings.wifiHidden}
-                onChange={e => onUpdate('wifiHidden', e.target.checked)}
-              />
-              <span>Hidden network</span>
-            </label>
-          </section>
-        )}
-
-        {/* Email fields */}
-        {settings.contentType === 'email' && (
-          <section className="panel-section sub-fields">
-            <input
-              className="sub-input"
-              placeholder="To (email address)"
-              value={settings.emailTo}
-              onChange={e => onUpdate('emailTo', e.target.value)}
-            />
-            <input
-              className="sub-input"
-              placeholder="Subject"
-              value={settings.emailSubject}
-              onChange={e => onUpdate('emailSubject', e.target.value)}
-            />
-            <textarea
-              className="sub-input sub-textarea"
-              placeholder="Body"
-              value={settings.emailBody}
-              onChange={e => onUpdate('emailBody', e.target.value)}
-            />
-          </section>
-        )}
+        <ContentFields settings={settings} onUpdate={onUpdate} />
 
         {/* Colors */}
         <section className="panel-section">
           <label className="section-label">Colors</label>
           <div className="color-row">
             <div className="color-item">
-              <label className="color-label">Foreground</label>
-              <div className="color-picker-wrap">
+              <span className="color-label">Foreground</span>
+              <label className="color-picker-wrap">
                 <input
                   type="color"
                   value={settings.fgColor}
@@ -137,11 +119,11 @@ export default function AdvancedPanel({ open, settings, onUpdate, onReset }) {
                   className="color-input"
                 />
                 <span className="color-hex">{settings.fgColor.toUpperCase()}</span>
-              </div>
+              </label>
             </div>
             <div className="color-item">
-              <label className="color-label">Background</label>
-              <div className="color-picker-wrap">
+              <span className="color-label">Background</span>
+              <label className="color-picker-wrap">
                 <input
                   type="color"
                   value={settings.bgColor}
@@ -149,7 +131,7 @@ export default function AdvancedPanel({ open, settings, onUpdate, onReset }) {
                   className="color-input"
                 />
                 <span className="color-hex">{settings.bgColor.toUpperCase()}</span>
-              </div>
+              </label>
             </div>
           </div>
         </section>
@@ -239,7 +221,7 @@ export default function AdvancedPanel({ open, settings, onUpdate, onReset }) {
                 </button>
               </div>
             ) : (
-              <span className="logo-drop-hint">Drop image or click to upload</span>
+              <span className="logo-drop-hint">Choose an image or drop it here</span>
             )}
           </div>
           <input
@@ -281,6 +263,18 @@ export default function AdvancedPanel({ open, settings, onUpdate, onReset }) {
               </button>
             ))}
           </div>
+        </section>
+
+        {/* Style link */}
+        <section className="panel-section">
+          <label className="section-label">Style Link</label>
+          <p className="hint">Share this look with your team. The link carries colours, dots, sizes and format, but not the content or logo.</p>
+          <button className="secondary-btn" onClick={onCopyStyleLink}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M6.5 9.5a3 3 0 0 0 4.24 0l2.12-2.12a3 3 0 0 0-4.24-4.24l-.7.7M9.5 6.5a3 3 0 0 0-4.24 0L3.14 8.62a3 3 0 0 0 4.24 4.24l.7-.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            Copy style link
+          </button>
         </section>
       </div>
     </aside>

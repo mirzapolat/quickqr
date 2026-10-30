@@ -1,90 +1,40 @@
-import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react'
-import QRCodeStyling from 'qr-code-styling'
+import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
+import { buildQROptions, createQR } from '../lib/qrRender'
 
 const QRDisplay = forwardRef(function QRDisplay({ data, settings, visible }, ref) {
+  const displayRef = useRef(null)
   const containerRef = useRef(null)
   const qrRef = useRef(null)
-  const [animating, setAnimating] = useState(false)
-  const prevDataRef = useRef(null)
+
+  // qr-code-styling caches the canvas it renders for raster exports and never
+  // invalidates it on update(), so exports from the preview instance go stale.
+  // Build a fresh instance from the current settings for every export instead.
+  // Each export gets its own instance: raster and SVG exports on one instance
+  // race each other, since both replace its internal SVG element.
+  const createExporter = () => createQR(data, settings)
 
   useImperativeHandle(ref, () => ({
-    download: (format) => {
-      if (qrRef.current) {
-        qrRef.current.download({ name: 'qrcode', extension: format || settings.downloadFormat })
-      }
-    },
-    getPngBlob: async () => {
-      if (!qrRef.current) return null
-      return qrRef.current.getRawData('png')
-    }
+    download: (format) => createExporter().download({ name: 'qrcode', extension: format }),
+    getBlob: (format = 'png') => createExporter().getRawData(format),
   }))
-
-  const dotType = {
-    square: 'square',
-    rounded: 'rounded',
-    dots: 'dots',
-  }[settings.dotStyle] || 'square'
 
   useEffect(() => {
     if (!containerRef.current) return
-
-    const isFirstRender = !qrRef.current
-
-    const qrOptions = {
-      width: settings.size,
-      height: settings.size,
-      type: 'svg',
-      data: data || ' ',
-      dotsOptions: {
-        color: settings.fgColor,
-        type: dotType,
-      },
-      backgroundOptions: {
-        color: settings.bgColor,
-      },
-      cornersSquareOptions: {
-        color: settings.fgColor,
-        type: settings.dotStyle === 'dots' ? 'dot' : 'square',
-      },
-      cornersDotOptions: {
-        color: settings.fgColor,
-        type: settings.dotStyle === 'dots' ? 'dot' : 'square',
-      },
-      qrOptions: {
-        errorCorrectionLevel: settings.errorCorrection,
-      },
-      margin: settings.margin,
-      ...(settings.logoUrl
-        ? {
-            image: settings.logoUrl,
-            imageOptions: {
-              hideBackgroundDots: true,
-              imageSize: settings.logoSize,
-              margin: 4,
-            },
-          }
-        : {}),
-    }
-
-    if (isFirstRender) {
-      qrRef.current = new QRCodeStyling(qrOptions)
+    if (!qrRef.current) {
+      qrRef.current = createQR(data, settings)
       qrRef.current.append(containerRef.current)
-    } else {
-      if (prevDataRef.current !== data || true) {
-        setAnimating(true)
-        setTimeout(() => {
-          qrRef.current.update(qrOptions)
-          setAnimating(false)
-        }, 80)
-      }
+      return
     }
-    prevDataRef.current = data
-  }, [data, settings.fgColor, settings.bgColor, settings.size, settings.errorCorrection, settings.dotStyle, settings.margin, settings.logoUrl, settings.logoSize])
+
+    qrRef.current.update(buildQROptions(data, settings))
+    const el = displayRef.current
+    el.classList.add('qr-updating')
+    const t = setTimeout(() => el.classList.remove('qr-updating'), 120)
+    return () => clearTimeout(t)
+  }, [data, settings])
 
   return (
-    <div
-      className={`qr-display ${visible ? 'qr-visible' : ''} ${animating ? 'qr-updating' : ''}`}
-    >
+    <div ref={displayRef} className={`qr-display ${visible ? 'qr-visible' : ''}`}>
       <div className="qr-inner" ref={containerRef} />
     </div>
   )
