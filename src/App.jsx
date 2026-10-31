@@ -5,11 +5,19 @@ import AdvancedPanel from './components/AdvancedPanel'
 import BatchView from './components/BatchView'
 import PrintDialog from './components/PrintDialog'
 import ScanWarnings from './components/ScanWarnings'
+import ContentFields from './components/ContentFields'
+import ScanDialog from './components/ScanDialog'
+import RecentList from './components/RecentList'
 import { useQRSettings, DEFAULT_SETTINGS } from './hooks/useQRSettings'
-import { buildQRData, contentTypeOf, describeQRData } from './lib/contentTypes'
+import { blankFieldsOf, buildQRData, contentTypeOf, describeQRData } from './lib/contentTypes'
+import { parseQRData } from './lib/parseContent'
+import { decodeImage } from './lib/decode'
+import { addToHistory, clearHistory, loadHistory, removeFromHistory } from './lib/history'
 import { getScanWarnings } from './lib/scannability'
 import { createStyleLink, readStyleFromHash } from './lib/styleLink'
 import { fileExtension } from './lib/download'
+import { getLanguagePreference, setLanguagePreference, t } from './lib/i18n'
+import { MOD_LABEL, hasMod } from './lib/shortcuts'
 import { registerServiceWorker } from './pwa'
 
 const IS_TOUCH = window.matchMedia?.('(pointer: coarse)').matches ?? false
@@ -41,6 +49,11 @@ function readStartup() {
   return { shared, style, overrides }
 }
 
+const imageFileOf = (dataTransfer) =>
+  [...(dataTransfer?.files || [])].find(file => file.type.startsWith('image/'))
+
+const isEditable = (el) => !!el?.closest?.('input, textarea, select, [contenteditable="true"]')
+
 export default function App() {
   const [startup] = useState(readStartup)
   const [inputValue, setInputValue] = useState('')
@@ -51,17 +64,34 @@ export default function App() {
   const [batchText, setBatchText] = useState('')
   const [printJob, setPrintJob] = useState(null)
   const [advancedOpen, setAdvancedOpen] = useState(false)
-  const [toast, setToast] = useState(() => (startup.style ? 'Shared style applied' : null))
+  const [scanOpen, setScanOpen] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const [history, setHistory] = useState(loadHistory)
+  const [language, setLanguage] = useState(getLanguagePreference)
+  const [toast, setToast] = useState(() => (startup.style ? t('Shared style applied') : null))
   const [isPasted, setIsPasted] = useState(false)
   const { settings, updateSetting, applySettings, resetSettings } = useQRSettings(startup.overrides)
   const qrRef = useRef(null)
+  const inputRef = useRef(null)
+  const formRef = useRef(null)
   const toastTimer = useRef(null)
   const shareFileRef = useRef(null)
+  const actionsRef = useRef({})
 
   const contentType = contentTypeOf(settings.contentType)
   const qrData = useMemo(() => buildQRData(sourceText, settings), [sourceText, settings])
   const qrVisible = !!qrData
-  const warnings = useMemo(() => getScanWarnings(settings, qrData), [settings, qrData])
+  // The frame caption falls back to "Scan me" in the current language.
+  const renderSettings = useMemo(
+    () => ({ ...settings, frameText: settings.frameText || t('Scan me') }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t() depends on the language
+    [settings, language],
+  )
+  const warnings = useMemo(
+    () => getScanWarnings(settings, qrData),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- messages depend on the language
+    [settings, qrData, language],
+  )
 
   // Drop share-target params and style links so a reload doesn't re-apply them.
   useEffect(() => {
@@ -71,6 +101,12 @@ export default function App() {
     if (startup.style) toastTimer.current = setTimeout(() => setToast(null), 2500)
   }, [startup])
 
+  const showToast = useCallback((msg) => {
+    clearTimeout(toastTimer.current)
+    setToast(msg)
+    toastTimer.current = setTimeout(() => setToast(null), 2200)
+  }, [])
+
   // A style link opened while the app is already open only changes the hash.
   useEffect(() => {
     const onHashChange = () => {
@@ -78,13 +114,11 @@ export default function App() {
       if (!style) return
       applySettings(style)
       window.history.replaceState(null, '', window.location.pathname)
-      clearTimeout(toastTimer.current)
-      setToast('Shared style applied')
-      toastTimer.current = setTimeout(() => setToast(null), 2500)
+      showToast(t('Shared style applied'))
     }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
-  }, [applySettings])
+  }, [applySettings, showToast])
 
   useEffect(() => {
     registerServiceWorker()
@@ -106,7 +140,7 @@ export default function App() {
     shareFileRef.current = null
     if (!CAN_SHARE_FILES || !qrVisible) return
     let cancelled = false
-    const format = settings.downloadFormat
+    const format = renderSettings.downloadFormat
     const t = setTimeout(async () => {
       try {
         const blob = await qrRef.current?.getBlob(format)
@@ -121,19 +155,90 @@ export default function App() {
       cancelled = true
       clearTimeout(t)
     }
-  }, [qrData, qrVisible, settings])
+  }, [qrData, qrVisible, renderSettings])
 
-  const showToast = (msg) => {
-    clearTimeout(toastTimer.current)
-    setToast(msg)
-    toastTimer.current = setTimeout(() => setToast(null), 2200)
-  }
+  // Keep a code in "Recent" once it's been used (copied, saved, shared,
+  // printed) or submitted from the main input.
+  const remember = useCallback((text = sourceText) => {
+    const data = buildQRData(text, settings)
+    if (!data) return
+    const keepText = contentType.primary ? '' : text
+    setHistory(prev => addToHistory(prev, { settings, text: keepText, label: describeQRData(settings, data) }))
+  }, [settings, sourceText, contentType.primary])
 
-  // Types with a main field (SMS number, contact name, …) put the input
-  // there, so it shows up and can be edited in the panel.
+  // Put scanned or pasted code content into the editor.
+  const importCode = useCallback((text) => {
+    const parsed = parseQRData(text)
+    setScanOpen(false)
+    setMode('single')
+    setInputValue('')
+    setIsPasted(false)
+    if (parsed.fields) {
+      applySettings({ contentType: parsed.contentType, ...blankFieldsOf(parsed.contentType), ...parsed.fields })
+      setSourceText('')
+    } else {
+      applySettings({ contentType: parsed.contentType })
+      setSourceText(parsed.text)
+    }
+    showToast(t('Code read — edit or restyle it'))
+  }, [applySettings, showToast])
+
+  const importImage = useCallback(async (file) => {
+    showToast(t('Reading…'))
+    try {
+      const text = await decodeImage(file)
+      if (text) importCode(text)
+      else showToast(t('No QR code found in that image'))
+    } catch {
+      showToast(t('Could not open that image.'))
+    }
+  }, [importCode, showToast])
+
+  // Paste an image of a QR code anywhere to read it.
+  useEffect(() => {
+    const onPaste = (e) => {
+      if (e.defaultPrevented || scanOpen) return
+      const file = imageFileOf(e.clipboardData)
+      if (!file) return
+      e.preventDefault()
+      importImage(file)
+    }
+    document.addEventListener('paste', onPaste)
+    return () => document.removeEventListener('paste', onPaste)
+  }, [importImage, scanOpen])
+
+  // Drop an image of a QR code anywhere to read it. Drops the logo field or
+  // a dialog handles itself are left alone.
+  useEffect(() => {
+    const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files')
+    const onDragOver = (e) => {
+      if (!hasFiles(e)) return
+      e.preventDefault()
+      setDragging(true)
+    }
+    const onDragLeave = (e) => {
+      if (!e.relatedTarget) setDragging(false)
+    }
+    const onDrop = (e) => {
+      setDragging(false)
+      if (e.defaultPrevented || !hasFiles(e)) return
+      e.preventDefault()
+      const file = imageFileOf(e.dataTransfer)
+      if (file) importImage(file)
+    }
+    window.addEventListener('dragover', onDragOver)
+    window.addEventListener('dragleave', onDragLeave)
+    window.addEventListener('drop', onDrop)
+    return () => {
+      window.removeEventListener('dragover', onDragOver)
+      window.removeEventListener('dragleave', onDragLeave)
+      window.removeEventListener('drop', onDrop)
+    }
+  }, [importImage])
+
   const applyInput = (text) => {
-    if (contentType.primary) updateSetting(contentType.primary, text)
-    else setSourceText(text)
+    setSourceText(text)
+    remember(text)
   }
 
   const submit = (value) => {
@@ -145,6 +250,12 @@ export default function App() {
   }
 
   const handlePaste = (e) => {
+    const file = imageFileOf(e.clipboardData)
+    if (file) {
+      e.preventDefault()
+      importImage(file)
+      return
+    }
     const pasted = e.clipboardData?.getData('text') || ''
     if (!pasted) return
     e.preventDefault()
@@ -161,10 +272,10 @@ export default function App() {
         applyInput(text)
         document.activeElement?.blur()
       } else {
-        showToast('Clipboard is empty')
+        showToast(t('Clipboard is empty'))
       }
     } catch {
-      showToast('Could not read clipboard')
+      showToast(t('Could not read clipboard'))
     }
   }
 
@@ -186,9 +297,10 @@ export default function App() {
     const format = settings.downloadFormat
     try {
       await qrRef.current.download(format)
-      showToast(`Saved as ${format.toUpperCase()}`)
+      remember()
+      showToast(t('Saved as {format}', { format: format.toUpperCase() }))
     } catch {
-      showToast('Could not save image')
+      showToast(t('Could not save image'))
     }
   }
 
@@ -202,8 +314,9 @@ export default function App() {
         file = new File([blob], `qrcode.${fileExtension(format)}`, { type: blob.type })
       }
       await navigator.share({ files: [file] })
+      remember()
     } catch (err) {
-      if (err?.name !== 'AbortError') showToast('Could not share image')
+      if (err?.name !== 'AbortError') showToast(t('Could not share image'))
     }
   }
 
@@ -222,14 +335,20 @@ export default function App() {
     if (svgSupported) items['image/svg+xml'] = blobFor('svg')
     try {
       await navigator.clipboard.write([new ClipboardItem(items)])
+      remember()
       if (svgSupported || format === 'png') {
-        showToast(`Copied as ${format.toUpperCase()}`)
+        showToast(t('Copied as {format}', { format: format.toUpperCase() }))
       } else {
-        showToast(`Copied as PNG — clipboard can't hold ${format.toUpperCase()}`)
+        showToast(t('Copied as PNG — clipboard can’t hold {format}', { format: format.toUpperCase() }))
       }
     } catch {
-      showToast('Could not copy image')
+      showToast(t('Could not copy image'))
     }
+  }
+
+  const openPrint = () => {
+    remember()
+    setPrintJob({ items: [{ data: qrData, caption: describeQRData(settings, qrData) }], fill: true })
   }
 
   const handleCardActivate = () => (CAN_SHARE_FILES && IS_TOUCH ? handleShare() : handleCopy())
@@ -245,13 +364,77 @@ export default function App() {
     const link = createStyleLink(settings)
     try {
       await navigator.clipboard.writeText(link)
-      showToast(settings.logoUrl ? 'Style link copied (logo not included)' : 'Style link copied')
+      showToast(settings.logoUrl ? t('Style link copied (logo not included)') : t('Style link copied'))
     } catch {
-      showToast('Could not copy the link')
+      showToast(t('Could not copy the link'))
     }
   }
 
+  const handleLanguageChange = (value) => {
+    setLanguagePreference(value)
+    setLanguage(value)
+  }
+
+  const pickRecent = (entry) => {
+    applySettings({ contentType: entry.contentType, ...blankFieldsOf(entry.contentType), ...entry.fields })
+    setSourceText(entry.text)
+    setInputValue('')
+    setMode('single')
+  }
+
   const closePrint = useCallback(() => setPrintJob(null), [])
+  const closeScan = useCallback(() => setScanOpen(false), [])
+
+  // Keyboard shortcuts. The handlers change every render, so the listener
+  // reads the latest ones from a ref.
+  useEffect(() => {
+    actionsRef.current = { handleCopy, handleDownload, openPrint, canAct: qrVisible && mode === 'single' }
+  })
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.defaultPrevented || e.repeat) return
+      const editing = isEditable(e.target)
+      const actions = actionsRef.current
+      if (e.key === '/' && !editing && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault()
+        const target = inputRef.current || formRef.current?.querySelector('input, textarea')
+        target?.focus()
+        return
+      }
+      if (!hasMod(e)) return
+      switch (e.key.toLowerCase()) {
+        case 'c': {
+          // Normal copy wins whenever there's text selected.
+          const field = editing && e.target.selectionStart !== e.target.selectionEnd
+          if (window.getSelection()?.toString() || field || !actions.canAct) return
+          e.preventDefault()
+          actions.handleCopy()
+          break
+        }
+        case 's':
+          e.preventDefault()
+          if (actions.canAct) actions.handleDownload()
+          break
+        case 'p':
+          if (!actions.canAct) return
+          e.preventDefault()
+          actions.openPrint()
+          break
+        case 'o':
+          e.preventDefault()
+          setScanOpen(true)
+          break
+        case ',':
+          e.preventDefault()
+          setAdvancedOpen(v => !v)
+          break
+        default:
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const settingsChanged = JSON.stringify(settings) !== JSON.stringify(DEFAULT_SETTINGS)
   const showReset = qrVisible || settingsChanged || !!batchText
@@ -266,6 +449,7 @@ export default function App() {
 
   const shareFirst = CAN_SHARE_FILES && IS_TOUCH
   const showPasteButton = IS_TOUCH && CAN_READ_CLIPBOARD && !inputValue
+  const showRecent = mode === 'single' && !qrVisible && !inputValue
 
   const copyButton = (
     <button className="action-btn" onClick={handleCopy}>
@@ -273,7 +457,7 @@ export default function App() {
         <rect x="5" y="5" width="9" height="9" rx="2" stroke="currentColor" strokeWidth="1.5"/>
         <path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" stroke="currentColor" strokeWidth="1.5"/>
       </svg>
-      Copy
+      {t('Copy')}
     </button>
   )
 
@@ -286,43 +470,61 @@ export default function App() {
         <div className="center-stack">
           <div className="intro-text">
             <h1 className="app-title">Quick QR-Code Generator</h1>
-            <p className="app-sub">Paste a link. Get a QR code.</p>
           </div>
 
-          <div className="mode-switch" role="tablist" aria-label="Mode">
-            {['single', 'batch'].map(m => (
-              <button
-                key={m}
-                role="tab"
-                aria-selected={mode === m}
-                className={`mode-btn ${mode === m ? 'mode-active' : ''}`}
-                onClick={() => setMode(m)}
-              >
-                {m === 'single' ? 'Single' : 'Batch'}
-              </button>
-            ))}
+          <div className="mode-switch">
+            <div role="tablist" aria-label={t('Mode')} className="mode-tabs">
+              {['single', 'batch'].map(m => (
+                <button
+                  key={m}
+                  role="tab"
+                  aria-selected={mode === m}
+                  className={`mode-btn ${mode === m ? 'mode-active' : ''}`}
+                  onClick={() => setMode(m)}
+                >
+                  {m === 'single' ? t('Single') : t('Batch')}
+                </button>
+              ))}
+            </div>
+            <span className="mode-divider" aria-hidden="true" />
+            <button
+              className="mode-btn scan-btn"
+              onClick={() => setScanOpen(true)}
+              title={IS_TOUCH ? t('Scan a code') : `${t('Scan a code')} (${MOD_LABEL}O)`}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M2 5.5V3a1 1 0 0 1 1-1h2.5M10.5 2H13a1 1 0 0 1 1 1v2.5M14 10.5V13a1 1 0 0 1-1 1h-2.5M5.5 14H3a1 1 0 0 1-1-1v-2.5M4.5 8h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              {t('Scan')}
+            </button>
           </div>
 
           {mode === 'batch' ? (
             <BatchView
               text={batchText}
               onTextChange={setBatchText}
-              settings={settings}
+              settings={renderSettings}
               onFix={applySettings}
               onPrint={items => setPrintJob({ items, fill: false })}
               showToast={showToast}
             />
           ) : (<>
 
+          {contentType.primary ? (
+            <div className="input-wrap" ref={formRef}>
+              <ContentFields settings={settings} onUpdate={updateSetting} />
+            </div>
+          ) : (
           <div className="input-wrap">
             <input
+              ref={inputRef}
               className="qr-input"
               type="text"
               value={inputValue}
               onChange={handleChange}
               onPaste={handlePaste}
               onKeyDown={handleKeyDown}
-              placeholder={contentType.placeholder}
+              placeholder={t(contentType.placeholder)}
               autoFocus={!IS_TOUCH}
               inputMode={contentType.inputMode || 'text'}
               enterKeyHint="go"
@@ -330,7 +532,7 @@ export default function App() {
               autoCorrect="off"
               spellCheck={false}
               autoComplete="off"
-              aria-label="QR code content"
+              aria-label={t('QR code content')}
             />
             {showPasteButton ? (
               <button className="paste-btn" onClick={handlePasteButton}>
@@ -338,14 +540,14 @@ export default function App() {
                   <rect x="3" y="2.5" width="10" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
                   <path d="M6 2.5h4v2H6z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
                 </svg>
-                Paste
+                {t('Paste')}
               </button>
             ) : (
               <button
                 className={`go-btn ${inputValue && !isPasted ? 'go-visible' : ''}`}
                 onClick={() => submit(inputValue)}
                 tabIndex={-1}
-                aria-label="Generate QR code"
+                aria-label={t('Generate QR code')}
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
@@ -353,6 +555,16 @@ export default function App() {
               </button>
             )}
           </div>
+          )}
+
+          {showRecent && (
+            <RecentList
+              entries={history}
+              onPick={pickRecent}
+              onRemove={entry => setHistory(prev => removeFromHistory(prev, entry.key))}
+              onClear={() => setHistory(clearHistory())}
+            />
+          )}
 
           <div className={`qr-area ${qrVisible ? 'qr-area-visible' : ''}`}>
             <div
@@ -361,13 +573,13 @@ export default function App() {
               tabIndex={qrVisible ? 0 : -1}
               onClick={handleCardActivate}
               onKeyDown={handleCardKeyDown}
-              title={qrVisible ? (shareFirst ? 'Tap to share' : 'Click to copy image') : undefined}
-              aria-label={shareFirst ? 'Share QR code image' : 'Copy QR code image'}
+              title={qrVisible ? (shareFirst ? t('Tap to share') : t('Click to copy image')) : undefined}
+              aria-label={shareFirst ? t('Share QR code image') : t('Copy QR code image')}
             >
               <QRDisplay
                 ref={qrRef}
                 data={qrData}
-                settings={settings}
+                settings={renderSettings}
                 visible={qrVisible}
               />
             </div>
@@ -381,7 +593,7 @@ export default function App() {
                       <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
                         <path d="M8 10V2M5 4.5 8 1.5l3 3M4.5 7H4a1.5 1.5 0 0 0-1.5 1.5v4A1.5 1.5 0 0 0 4 14h8a1.5 1.5 0 0 0 1.5-1.5v-4A1.5 1.5 0 0 0 12 7h-.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
-                      Share
+                      {t('Share')}
                       <span className="action-format">{settings.downloadFormat.toUpperCase()}</span>
                     </button>
                   ) : copyButton}
@@ -389,20 +601,17 @@ export default function App() {
                   <button
                     className={`action-btn ${shareFirst ? '' : 'action-primary'}`}
                     onClick={handleDownload}
-                    aria-label={`Download ${settings.downloadFormat.toUpperCase()}`}
+                    aria-label={t('Download {format}', { format: settings.downloadFormat.toUpperCase() })}
                   >
                     <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
                       <path d="M8 2v8M4 7l4 4 4-4M2 13.5h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                    {shareFirst ? 'Save' : 'Download'}
+                    {shareFirst ? t('Save') : t('Download')}
                     {!shareFirst && <span className="action-format">{settings.downloadFormat.toUpperCase()}</span>}
                   </button>
                 </div>
-                <button
-                  className="link-btn print-link"
-                  onClick={() => setPrintJob({ items: [{ data: qrData, caption: describeQRData(settings, qrData) }], fill: true })}
-                >
-                  Print a sheet of stickers
+                <button className="link-btn print-link" onClick={openPrint}>
+                  {t('Print a sheet of stickers')}
                 </button>
               </>
             )}
@@ -415,19 +624,28 @@ export default function App() {
         <PrintDialog
           items={printJob.items}
           fill={printJob.fill}
-          settings={settings}
+          settings={renderSettings}
           onClose={closePrint}
           showToast={showToast}
         />
+      )}
+
+      {scanOpen && <ScanDialog onResult={importCode} onClose={closeScan} />}
+
+      {dragging && !advancedOpen && !scanOpen && (
+        <div className="drop-overlay" aria-hidden="true">
+          <span>{t('Drop an image to read its QR code')}</span>
+        </div>
       )}
 
       <AdvancedPanel
         open={advancedOpen}
         settings={settings}
         onUpdate={updateSetting}
-        onReset={resetSettings}
+        onApply={applySettings}
         onClose={() => setAdvancedOpen(false)}
         onCopyStyleLink={handleCopyStyleLink}
+        onLanguageChange={handleLanguageChange}
       />
 
       <div className={`toast ${toast ? 'toast-visible' : ''}`} role="status">{toast}</div>
@@ -436,13 +654,13 @@ export default function App() {
         <button
           className={`bar-btn reset-page-btn ${showReset ? 'reset-page-visible' : ''}`}
           onClick={handleReset}
-          aria-label="Reset"
+          aria-label={t('Reset')}
           tabIndex={showReset ? 0 : -1}
         >
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
             <path d="M2 8a6 6 0 1 0 1.5-3.9M2 4v4h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          Reset
+          <span className="bar-label">{t('Reset')}</span>
         </button>
 
         <a
@@ -454,13 +672,14 @@ export default function App() {
           <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
             <path d="M8 14s-6-3.9-6-8a4 4 0 0 1 6-3.44A4 4 0 0 1 14 6c0 4.1-6 8-6 8z"/>
           </svg>
-          <span>Support<span className="support-long"> this tool</span></span>
+          <span className="support-long">{t('Support this tool')}</span>
+          <span className="support-short">{t('Support')}</span>
         </a>
 
         <button
           className={`bar-btn advanced-toggle ${advancedOpen ? 'toggle-active' : ''}`}
           onClick={() => setAdvancedOpen(v => !v)}
-          aria-label="Toggle advanced settings"
+          aria-label={t('Toggle advanced settings')}
           aria-expanded={advancedOpen}
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -469,7 +688,7 @@ export default function App() {
             <circle cx="4" cy="12" r="1.5" stroke="currentColor" strokeWidth="1.3"/>
             <path d="M5.5 4h7M1 8h9M5.5 12h7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
           </svg>
-          {advancedOpen ? 'Simple' : 'Advanced'}
+          {advancedOpen ? t('Simple') : t('Advanced')}
         </button>
       </nav>
     </div>

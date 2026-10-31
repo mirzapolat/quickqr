@@ -6,6 +6,7 @@ import { createZip } from '../lib/zip'
 import { downloadBlob, fileExtension } from '../lib/download'
 import { getScanWarnings } from '../lib/scannability'
 import ScanWarnings from './ScanWarnings'
+import { plural, t } from '../lib/i18n'
 
 const PREVIEW_COUNT = 6
 
@@ -54,7 +55,7 @@ export default function BatchView({ text, onTextChange, settings, onFix, onPrint
     if (!file) return
     const imported = csvToBatchText(await file.text())
     if (!imported) {
-      showToast('No rows found in that file')
+      showToast(t('No rows found in that file'))
       return
     }
     onTextChange(text.trim() ? `${text.trim()}\n${imported}` : imported)
@@ -73,9 +74,9 @@ export default function BatchView({ text, onTextChange, settings, onFix, onPrint
         setProgress(i + 1)
       }
       downloadBlob(createZip(files), 'qr-codes.zip')
-      showToast(`Saved ${items.length} codes`)
+      showToast(plural(items.length, 'Saved {count} code', 'Saved {count} codes'))
     } catch {
-      showToast('Could not create the ZIP')
+      showToast(t('Could not create the ZIP'))
     } finally {
       setProgress(null)
     }
@@ -89,19 +90,19 @@ export default function BatchView({ text, onTextChange, settings, onFix, onPrint
         className="batch-input"
         value={text}
         onChange={e => onTextChange(e.target.value)}
-        placeholder={`${type.placeholder.replace('…', '')}, one per line`}
+        placeholder={t('{example}, one per line', { example: t(type.placeholder).replace('…', '') })}
         spellCheck={false}
         autoCapitalize="off"
         autoCorrect="off"
-        aria-label="Batch content, one per line"
+        aria-label={t('Batch content, one per line')}
       />
       <div className="batch-meta">
         <span>
-          {items.length ? `${items.length} ${items.length === 1 ? 'code' : 'codes'}` : 'One code per line'}
-          {skipped > 0 && <span className="batch-skipped"> · {skipped} skipped</span>}
-          {lineCount > MAX_BATCH && <span className="batch-skipped"> · max {MAX_BATCH}</span>}
+          {items.length ? plural(items.length, '{count} code', '{count} codes') : t('One code per line')}
+          {skipped > 0 && <span className="batch-skipped"> · {t('{count} skipped', { count: skipped })}</span>}
+          {lineCount > MAX_BATCH && <span className="batch-skipped"> · {t('max {count}', { count: MAX_BATCH })}</span>}
         </span>
-        <button className="link-btn" onClick={() => fileRef.current?.click()}>Import CSV</button>
+        <button className="link-btn" onClick={() => fileRef.current?.click()}>{t('Import CSV')}</button>
         <input ref={fileRef} type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden onChange={handleCsv} />
       </div>
 
@@ -119,13 +120,13 @@ export default function BatchView({ text, onTextChange, settings, onFix, onPrint
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
             <path d="M4.5 6V2h7v4M4.5 12H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1.5M4.5 9.5h7V14h-7z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
           </svg>
-          Print sheet
+          {t('Print sheet')}
         </button>
         <button className="action-btn action-primary" disabled={!items.length || busy} onClick={handleZip}>
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
             <path d="M8 2v8M4 7l4 4 4-4M2 13.5h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          {busy ? `Rendering ${progress}/${items.length}` : 'Download ZIP'}
+          {busy ? t('Rendering {done}/{total}', { done: progress, total: items.length }) : t('Download ZIP')}
           {!busy && <span className="action-format">{format.toUpperCase()}</span>}
         </button>
       </div>

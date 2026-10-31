@@ -1,7 +1,9 @@
+import { t } from '../lib/i18n'
+
 export default function ScanWarnings({ warnings, onFix }) {
   if (!warnings.length) return null
   return (
-    <ul className="scan-warnings" aria-label="Scan warnings">
+    <ul className="scan-warnings" aria-label={t('Scan warnings')}>
       {warnings.map(warning => (
         <li key={warning.id} className="scan-warning">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">

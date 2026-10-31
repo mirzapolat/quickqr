@@ -7,8 +7,10 @@
   position: relative;
   overflow: hidden;
   transition: padding-right 0.35s var(--ease);
+  /* Paper grain under a soft light falling from the top */
   background:
-    radial-gradient(ellipse 60% 40% at 50% 0%, var(--bg-off), transparent 70%),
+    radial-gradient(ellipse 70% 45% at 50% 0%, color-mix(in srgb, var(--surface) 70%, transparent), transparent 70%),
+    var(--grain),
     var(--bg);
 }
 
@@ -51,18 +53,15 @@
 }
 
 .app-title {
-  font-size: 22px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 700;
   color: var(--text);
-  letter-spacing: -0.035em;
-  line-height: 1.1;
-}
-
-.app-sub {
-  font-size: 14px;
-  color: var(--text-3);
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  /* Letterpress: the title reads as pressed into the board */
+  text-shadow: var(--emboss);
 }
 
 /* ─── Input ──────────────────────────────────────────────── */
@@ -84,7 +83,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   outline: none;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-in);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   caret-color: var(--text);
   letter-spacing: -0.01em;
@@ -96,7 +95,7 @@
 
 .qr-input:focus {
   border-color: var(--border-focus);
-  box-shadow: var(--shadow-sm), 0 0 0 4px var(--ring);
+  box-shadow: var(--shadow-in), 0 0 0 4px var(--ring);
 }
 
 .go-btn {
@@ -284,13 +283,19 @@ button, a, [role="button"] {
 }
 
 .action-btn:active {
-  transform: scale(0.97);
+  transform: translateY(1px);
+  box-shadow: var(--shadow-in);
 }
 
 .action-btn.action-primary {
   color: var(--on-accent);
   background: var(--accent);
   border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+}
+
+.action-btn.action-primary:active {
+  box-shadow: inset 2px 3px 6px rgba(0, 0, 0, 0.35);
 }
 
 .action-btn.action-primary:hover {
@@ -321,6 +326,7 @@ button, a, [role="button"] {
   margin-top: -10px;
   background: var(--bg-off);
   border-radius: 999px;
+  box-shadow: var(--shadow-in);
 }
 
 .mode-btn {
@@ -340,7 +346,7 @@ button, a, [role="button"] {
 .mode-btn.mode-active {
   color: var(--text);
   background: var(--surface);
-  box-shadow: var(--shadow-sm), 0 0 0 1px var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ─── Small buttons ──────────────────────────────────────── */
@@ -470,7 +476,7 @@ button, a, [role="button"] {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-in);
   outline: none;
   resize: vertical;
   tab-size: 4;
@@ -483,7 +489,7 @@ button, a, [role="button"] {
 
 .batch-input:focus {
   border-color: var(--border-focus);
-  box-shadow: var(--shadow-sm), 0 0 0 4px var(--ring);
+  box-shadow: var(--shadow-in), 0 0 0 4px var(--ring);
 }
 
 .batch-meta {
@@ -720,7 +726,7 @@ button, a, [role="button"] {
   right: 0;
   width: var(--panel-w);
   height: 100%;
-  background: var(--surface);
+  background: var(--grain), var(--surface);
   border-left: 1px solid var(--border);
   transform: translateX(100%);
   transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
@@ -755,49 +761,14 @@ button, a, [role="button"] {
   padding: max(18px, env(safe-area-inset-top)) 0 14px;
 }
 
-.panel-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.done-btn {
-  display: none;
-  height: 32px;
-  padding: 0 14px;
-  font-size: 13px;
-  font-family: var(--font);
-  font-weight: 600;
-  color: var(--on-accent);
-  background: var(--accent);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
 .panel-title {
+  font-family: var(--font-display);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
-  letter-spacing: -0.02em;
-}
-
-.reset-btn {
-  font-size: 12px;
-  font-family: var(--font);
-  font-weight: 500;
-  color: var(--text-3);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: color 0.12s, background 0.12s;
-}
-
-.reset-btn:hover {
-  color: var(--text-2);
-  background: var(--bg-off);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-shadow: var(--emboss);
 }
 
 /* ─── Panel Sections ─────────────────────────────────────── */
@@ -1028,10 +999,23 @@ button, a, [role="button"] {
   transform: scale(1.15);
 }
 
-/* ─── Sub Fields (WiFi / Email) ──────────────────────────── */
+/* ─── Sub Fields (WiFi / Email / Contact …) ──────────────── */
 
 .sub-fields {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+}
+
+.sub-fields .sub-input {
+  padding: 12px 14px;
+  font-size: 14px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-in);
+}
+
+.sub-fields .sub-input:focus {
+  box-shadow: var(--shadow-in), 0 0 0 4px var(--ring);
 }
 
 .sub-input {
@@ -1115,40 +1099,36 @@ button, a, [role="button"] {
   border-radius: 8px;
 }
 
-.logo-remove {
-  position: absolute;
-  top: -7px;
-  right: -7px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  border: 2px solid var(--surface);
-  font-size: 11px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
 /* ─── Support Link ───────────────────────────────────────── */
 
 .support-link {
   justify-self: center;
-  color: var(--support);
-  background: var(--support-bg);
-  border-color: var(--support-border);
+  color: var(--text-3);
+  background: none;
+  border-color: transparent;
   box-shadow: none;
-  transition: filter 0.15s, box-shadow 0.15s;
+  transition: color 0.15s;
+}
+
+.support-link svg {
+  opacity: 0.7;
+  transition: color 0.15s, opacity 0.15s;
 }
 
 @media (hover: hover) {
   .support-link:hover {
-    filter: brightness(0.97) saturate(1.1);
-    box-shadow: 0 2px 8px rgba(192, 57, 43, 0.13);
+    color: var(--text-2);
   }
+
+  .support-link:hover svg {
+    color: var(--support);
+    opacity: 1;
+  }
+}
+
+
+.support-short {
+  display: none;
 }
 
 /* ─── Toast ──────────────────────────────────────────────── */
@@ -1197,6 +1177,501 @@ button, a, [role="button"] {
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+/* ─── Icon button (close) ────────────────────────────────── */
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--text-2);
+  background: var(--bg-off);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s, transform 0.1s;
+}
+
+.icon-btn:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.icon-btn:active {
+  transform: scale(0.94);
+}
+
+/* ─── Panel scroll fades ─────────────────────────────────── */
+
+@property --fade-top {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-bottom {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* Fade the edges only where there's more to scroll. */
+.panel-scroll {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+  transition: --fade-top 0.2s ease, --fade-bottom 0.2s ease;
+}
+
+.panel-scroll.fade-top {
+  --fade-top: 28px;
+}
+
+.panel-scroll.fade-bottom {
+  --fade-bottom: 44px;
+}
+
+/* ─── Mode switch: scan ──────────────────────────────────── */
+
+.mode-tabs {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.mode-divider {
+  width: 1px;
+  height: 14px;
+  margin: 0 3px;
+  align-self: center;
+  background: var(--border-focus);
+  opacity: 0.6;
+}
+
+.scan-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px 0 10px;
+}
+
+.scan-btn:hover {
+  color: var(--text-2);
+}
+
+/* ─── Recent codes ───────────────────────────────────────── */
+
+.recent {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: -6px;
+  animation: fadeUp 0.25s ease both;
+}
+
+.recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.recent-head .link-btn {
+  font-size: 11.5px;
+}
+
+.recent-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-item {
+  display: flex;
+  align-items: center;
+  border-radius: 10px;
+  transition: background 0.12s;
+}
+
+.recent-item:hover {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+.recent-pick {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px 8px 8px;
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--text-2);
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.recent-pick:hover {
+  color: var(--text);
+}
+
+.recent-type {
+  flex: none;
+  min-width: 64px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.recent-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.recent-remove {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 2px;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s;
+}
+
+.recent-item:hover .recent-remove,
+.recent-remove:focus-visible {
+  opacity: 1;
+}
+
+.recent-remove:hover {
+  color: var(--text);
+}
+
+@media (hover: none) {
+  .recent-remove {
+    opacity: 1;
+  }
+}
+
+/* ─── Logo extras ────────────────────────────────────────── */
+
+.logo-preview-wrap {
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.logo-size {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.hint-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.hint-action .link-btn {
+  padding: 0;
+  font-size: 11.5px;
+}
+
+.hint-error {
+  color: var(--support);
+}
+
+.logo-colours {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-off);
+  border-radius: 10px;
+  box-shadow: var(--shadow-in);
+}
+
+.logo-colours .hint {
+  margin: 0;
+}
+
+.swatch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.swatch-row .color-label {
+  min-width: 78px;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--border), var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.12s var(--spring);
+}
+
+.swatch:hover {
+  transform: scale(1.12);
+}
+
+/* ─── Two fields side by side ────────────────────────────── */
+
+.field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* ─── Dialog actions ─────────────────────────────────────── */
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.dialog-actions .action-btn {
+  height: 40px;
+  padding: 0 16px;
+}
+
+.dialog-actions .action-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ─── Crop dialog ────────────────────────────────────────── */
+
+.crop-dialog,
+.scan-dialog {
+  max-width: 340px;
+}
+
+.crop-viewport {
+  position: relative;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 12px;
+  touch-action: none;
+  cursor: grab;
+  /* Checkerboard shows transparent parts of the logo */
+  background:
+    repeating-conic-gradient(var(--bg-off) 0 25%, var(--surface) 0 50%) 0 0 / 16px 16px;
+  box-shadow: var(--shadow-in);
+  outline-offset: 3px;
+}
+
+.crop-viewport:active {
+  cursor: grabbing;
+}
+
+.crop-image {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Darken what the chosen shape cuts away */
+.crop-mask {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 0;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  transition: border-radius 0.2s var(--ease);
+}
+
+.crop-rounded .crop-mask {
+  border-radius: 20%;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.7) inset;
+}
+
+.crop-circle .crop-mask {
+  border-radius: 50%;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.7) inset;
+}
+
+.crop-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.crop-zoom {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ─── Scan dialog ────────────────────────────────────────── */
+
+.scan-stage {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--bg-off);
+  box-shadow: var(--shadow-in);
+}
+
+.scan-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.scan-live {
+  background: #000;
+}
+
+.scan-live .scan-video {
+  opacity: 1;
+}
+
+/* Corner brackets marking where to hold the code */
+.scan-target {
+  position: absolute;
+  inset: 18%;
+  --c: rgba(255, 255, 255, 0.9);
+  background:
+    linear-gradient(var(--c), var(--c)) top left / 26px 3px,
+    linear-gradient(var(--c), var(--c)) top left / 3px 26px,
+    linear-gradient(var(--c), var(--c)) top right / 26px 3px,
+    linear-gradient(var(--c), var(--c)) top right / 3px 26px,
+    linear-gradient(var(--c), var(--c)) bottom left / 26px 3px,
+    linear-gradient(var(--c), var(--c)) bottom left / 3px 26px,
+    linear-gradient(var(--c), var(--c)) bottom right / 26px 3px,
+    linear-gradient(var(--c), var(--c)) bottom right / 3px 26px;
+  background-repeat: no-repeat;
+  border-radius: 6px;
+}
+
+.scan-drop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.12s;
+}
+
+.scan-drop:hover {
+  color: var(--text-2);
+}
+
+.scan-status {
+  min-height: 1.4em;
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* ─── Drop anywhere ──────────────────────────────────────── */
+
+.drop-overlay {
+  position: fixed;
+  inset: 10px;
+  z-index: 140;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--border-focus);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  pointer-events: none;
+  animation: fadeIn 0.12s ease both;
+}
+
+.drop-overlay span {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+
+/* ─── Keyboard shortcuts ─────────────────────────────────── */
+
+.shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shortcut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.shortcut dd {
+  display: flex;
+  gap: 3px;
+}
+
+kbd {
+  min-width: 22px;
+  padding: 2px 6px;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 1px 0 var(--border);
 }
 
 /* ─── Mobile ─────────────────────────────────────────────── */
@@ -1258,23 +1733,28 @@ button, a, [role="button"] {
     font-size: 13px;
   }
 
-  .sub-input {
+  .sub-input,
+  .sub-fields .sub-input {
     padding: 11px 12px;
     font-size: 16px; /* prevent iOS zoom */
   }
 
+  /* Phones with a home indicator have rounded screen corners but no side
+     inset in portrait, so pull the corner buttons in away from the curve. */
   .bottom-bar {
-    padding-left: max(12px, env(safe-area-inset-left));
-    padding-right: max(12px, env(safe-area-inset-right));
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    --corner-clear: calc(env(safe-area-inset-bottom, 0px) * 0.6 + 6px);
+    padding-left: max(14px, env(safe-area-inset-left), var(--corner-clear));
+    padding-right: max(14px, env(safe-area-inset-right), var(--corner-clear));
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
   }
 
   .bar-btn {
     height: 42px;
     font-size: 13px;
+    border-radius: 14px;
   }
 
-  /* The sheet covers the bar; it has its own Done button */
+  /* The sheet covers the bar; it has its own close button */
   .app.panel-is-open .bottom-bar {
     right: 0;
     opacity: 0;
@@ -1318,10 +1798,6 @@ button, a, [role="button"] {
     display: block;
   }
 
-  .done-btn {
-    display: inline-block;
-  }
-
   .panel-overlay {
     display: block;
     position: fixed;
@@ -1336,7 +1812,7 @@ button, a, [role="button"] {
   }
 
   .toast {
-    bottom: calc(68px + max(12px, env(safe-area-inset-bottom)));
+    bottom: calc(68px + max(14px, env(safe-area-inset-bottom)));
   }
 
   .mode-switch {
@@ -1451,7 +1927,6 @@ button, a, [role="button"] {
 }
 
 @media (max-width: 380px) {
-  .support-long,
   .action-format {
     display: none;
   }
@@ -1465,5 +1940,215 @@ button, a, [role="button"] {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── Phones: short labels in the bottom bar ─────────────── */
+
+@media (max-width: 640px) {
+  .support-long {
+    display: none;
+  }
+
+  .support-short {
+    display: inline;
+  }
+}
+
+/* Narrow phones: Reset keeps its icon (and aria-label) only */
+@media (max-width: 420px) {
+  .reset-page-btn .bar-label {
+    display: none;
+  }
+
+  .reset-page-btn {
+    padding: 0 13px;
+  }
+}
+
+/* ─── Phones: full-screen camera with glass controls ─────── */
+
+@media (max-width: 640px) {
+  .dialog-overlay:has(.scan-dialog) {
+    padding: 0;
+    background: #000;
+    place-items: stretch;
+  }
+
+  .dialog.scan-dialog {
+    position: relative;
+    max-width: none;
+    max-height: none;
+    height: 100dvh;
+    padding: 0;
+    overflow: hidden;
+    color: #fff;
+    background: #000;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    animation: fadeIn 0.2s ease both;
+  }
+
+  .scan-dialog .scan-stage {
+    position: absolute;
+    inset: 0;
+    aspect-ratio: auto;
+    border-radius: 0;
+    background: #0d0d0d;
+    box-shadow: none;
+  }
+
+  /* Viewfinder: dim everything outside a rounded square */
+  .scan-dialog .scan-target {
+    inset: auto;
+    left: 50%;
+    top: 46%;
+    width: min(72vw, 300px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 34px;
+    background: none;
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.42);
+    animation: scanBreathe 2.4s ease-in-out infinite;
+  }
+
+  /* Rounded corner brackets: a rounded border with only its corners shown */
+  .scan-dialog .scan-target::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 4px solid #fff;
+    border-radius: inherit;
+    -webkit-mask:
+      linear-gradient(#000 0 0) top left / 54px 54px no-repeat,
+      linear-gradient(#000 0 0) top right / 54px 54px no-repeat,
+      linear-gradient(#000 0 0) bottom left / 54px 54px no-repeat,
+      linear-gradient(#000 0 0) bottom right / 54px 54px no-repeat;
+    mask:
+      linear-gradient(#000 0 0) top left / 54px 54px no-repeat,
+      linear-gradient(#000 0 0) top right / 54px 54px no-repeat,
+      linear-gradient(#000 0 0) bottom left / 54px 54px no-repeat,
+      linear-gradient(#000 0 0) bottom right / 54px 54px no-repeat;
+  }
+
+  .scan-dialog .scan-drop {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Liquid glass: blurred, saturated backdrop, a bright top edge and a
+     soft inner sheen. */
+  .scan-dialog .dialog-header,
+  .scan-dialog .scan-status,
+  .scan-dialog .dialog-actions,
+  .scan-dialog .icon-btn {
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: blur(22px) saturate(180%);
+  }
+
+  .scan-dialog .dialog-header {
+    position: absolute;
+    z-index: 2;
+    top: max(14px, env(safe-area-inset-top));
+    left: 16px;
+    right: 16px;
+    margin: 0;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .scan-dialog .panel-title {
+    padding: 9px 16px;
+    font-size: 13px;
+    color: #fff;
+    text-shadow: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06));
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: blur(22px) saturate(180%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+      0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+
+  .scan-dialog .icon-btn {
+    width: 40px;
+    height: 40px;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.07));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+      0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+
+  .scan-dialog .scan-status {
+    position: absolute;
+    z-index: 2;
+    left: 50%;
+    bottom: calc(max(20px, env(safe-area-inset-bottom)) + 84px);
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: calc(100% - 48px);
+    min-height: 0;
+    margin: 0;
+    padding: 8px 14px;
+    font-size: 13px;
+    line-height: 1.35;
+    color: #fff;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+
+  .scan-dialog .scan-status:empty {
+    display: none;
+  }
+
+  .scan-dialog .dialog-actions {
+    position: absolute;
+    z-index: 2;
+    left: 16px;
+    right: 16px;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    margin: 0;
+    padding: 8px;
+    gap: 8px;
+    border-radius: 30px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+      0 12px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .scan-dialog .dialog-actions .action-btn {
+    flex: 1;
+    justify-content: center;
+    height: 48px;
+    font-size: 15px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 22px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+
+  .scan-dialog .dialog-actions .action-primary {
+    color: #000;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: inset 0 1px 0 #fff, 0 4px 14px rgba(0, 0, 0, 0.2);
+  }
+}
+
+@keyframes scanBreathe {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.025; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-target {
+    animation: none !important;
   }
 }

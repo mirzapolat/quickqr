@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { PAPERS, CODE_SIZES, layoutSheet, buildPrintPdf, defaultPaper } from '../lib/printSheet'
 import { downloadBlob } from '../lib/download'
+import { plural, t } from '../lib/i18n'
 
 // items: [{ data, caption }]. With `fill`, the single item repeats to fill
 // one sheet (stickers); otherwise each item is printed once.
@@ -39,10 +40,10 @@ export default function PrintDialog({ items, fill, settings, onClose, showToast 
         onProgress: setProgress,
       })
       downloadBlob(pdf, 'qr-codes.pdf')
-      showToast('PDF saved')
+      showToast(t('PDF saved'))
       onClose()
     } catch {
-      showToast('Could not create the PDF')
+      showToast(t('Could not create the PDF'))
       setProgress(null)
     }
   }
@@ -63,8 +64,12 @@ export default function PrintDialog({ items, fill, settings, onClose, showToast 
         onClick={e => e.stopPropagation()}
       >
         <div className="dialog-header">
-          <h2 id="print-title" className="panel-title">Print sheet</h2>
-          <button className="reset-btn" onClick={onClose}>Close</button>
+          <h2 id="print-title" className="panel-title">{t('Print sheet')}</h2>
+          <button className="icon-btn" onClick={onClose} aria-label={t('Close')}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+            </svg>
+          </button>
         </div>
 
         <div className="print-body">
@@ -104,7 +109,7 @@ export default function PrintDialog({ items, fill, settings, onClose, showToast 
 
           <div className="print-options">
             <div className="print-option">
-              <span className="section-label">Paper</span>
+              <span className="section-label">{t('Paper')}</span>
               <div className="segmented">
                 {Object.entries(PAPERS).map(([key, p]) => (
                   <button key={key} className={`seg-btn ${paper === key ? 'seg-active' : ''}`} onClick={() => setPaper(key)}>
@@ -115,7 +120,7 @@ export default function PrintDialog({ items, fill, settings, onClose, showToast 
             </div>
 
             <div className="print-option">
-              <span className="section-label">Code size</span>
+              <span className="section-label">{t('Code size')}</span>
               <div className="segmented">
                 {CODE_SIZES.map(size => (
                   <button key={size} className={`seg-btn ${codeSize === size ? 'seg-active' : ''}`} onClick={() => setCodeSize(size)}>
@@ -127,23 +132,23 @@ export default function PrintDialog({ items, fill, settings, onClose, showToast 
 
             <label className="checkbox-row">
               <input type="checkbox" checked={captions} onChange={e => setCaptions(e.target.checked)} />
-              <span>Caption under each code</span>
+              <span>{t('Caption under each code')}</span>
             </label>
             <label className="checkbox-row">
               <input type="checkbox" checked={guides} onChange={e => setGuides(e.target.checked)} />
-              <span>Dashed cut lines</span>
+              <span>{t('Dashed cut lines')}</span>
             </label>
 
             <p className="hint print-summary">
-              {layout.perPage} per sheet
-              {!fill && ` · ${pageCount} ${pageCount === 1 ? 'page' : 'pages'}`}
-              {' '}· print at 100%
+              {t('{count} per sheet', { count: layout.perPage })}
+              {!fill && ` · ${plural(pageCount, '{count} page', '{count} pages')}`}
+              {' · '}{t('print at 100%')}
             </p>
           </div>
         </div>
 
         <button className="action-btn action-primary dialog-cta" disabled={busy} onClick={handleDownload}>
-          {busy ? `Rendering ${progress}/${uniqueCount}` : 'Download PDF'}
+          {busy ? t('Rendering {done}/{total}', { done: progress, total: uniqueCount }) : t('Download PDF')}
         </button>
       </div>
     </div>

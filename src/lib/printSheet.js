@@ -1,3 +1,4 @@
+import { t } from './i18n'
 import { renderQR } from './qrRender'
 import { createPdf, imageToPdfImage, fitText } from './pdf'
 
@@ -105,7 +106,7 @@ export async function buildPrintPdf({ items, settings, paper, codeSize, captions
       size: 6.5,
       align: 'center',
       gray: 0.6,
-      text: `QR codes ${codeSize} mm wide. Print at 100% / actual size.`,
+      text: t('QR codes {size} mm wide. Print at 100% / actual size.', { size: codeSize }),
     })
     pages.push(page)
   }

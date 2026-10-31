@@ -1,22 +1,32 @@
 import { useState, useCallback, useEffect } from 'react'
-import { CONTENT_DEFAULTS, CONTENT_TYPES } from '../lib/contentTypes'
+import { CONTENT_DEFAULTS, CONTENT_TYPES, CRYPTO_COINS } from '../lib/contentTypes'
 
 export const DEFAULT_SETTINGS = {
   contentType: 'url',
   dotStyle: 'square',
+  cornerStyle: 'match',
   fgColor: '#000000',
   bgColor: '#ffffff',
+  gradient: 'none',
+  fgColor2: '#2f6fed',
+  frame: 'none',
+  // Empty shows the translated default ("Scan me")
+  frameText: '',
   errorCorrection: 'M',
   size: 300,
   margin: 10,
   logoUrl: null,
-  logoSize: 0.25,
+  // Logo width as a share of the code width; capped by error correction
+  logoSize: 0.22,
   downloadFormat: 'png',
   ...CONTENT_DEFAULTS,
 }
 
 // The look of a code, without its content. Shared through style links.
-export const STYLE_KEYS = ['dotStyle', 'fgColor', 'bgColor', 'errorCorrection', 'size', 'margin', 'logoSize', 'downloadFormat']
+export const STYLE_KEYS = [
+  'dotStyle', 'cornerStyle', 'fgColor', 'bgColor', 'gradient', 'fgColor2', 'frame', 'frameText',
+  'errorCorrection', 'size', 'margin', 'logoSize', 'downloadFormat',
+]
 
 const STORAGE_KEY = 'quickqr:settings'
 // Never write the Wi-Fi password to disk.
@@ -25,17 +35,22 @@ const NON_PERSISTED_KEYS = ['wifiPassword']
 const ALLOWED = {
   contentType: CONTENT_TYPES.map(ct => ct.value),
   dotStyle: ['square', 'rounded', 'dots'],
+  cornerStyle: ['match', 'square', 'rounded', 'circle'],
+  gradient: ['none', 'linear', 'radial'],
+  frame: ['none', 'caption', 'badge'],
+  cryptoCoin: CRYPTO_COINS.map(c => c.value),
   errorCorrection: ['L', 'M', 'Q', 'H'],
   downloadFormat: ['png', 'svg', 'jpeg', 'webp'],
   wifiEncryption: ['WPA', 'WEP', 'none'],
 }
-const RANGES = { size: [200, 600], margin: [0, 100], logoSize: [0.1, 0.4] }
+const RANGES = { size: [200, 600], margin: [0, 100], logoSize: [0.1, 0.5] }
 const COLOR = /^#[0-9a-f]{6}$/i
 
 function isValid(key, value) {
   if (ALLOWED[key]) return ALLOWED[key].includes(value)
   if (RANGES[key]) return Number.isFinite(value) && value >= RANGES[key][0] && value <= RANGES[key][1]
-  if (key === 'fgColor' || key === 'bgColor') return COLOR.test(value)
+  if (key === 'fgColor' || key === 'bgColor' || key === 'fgColor2') return COLOR.test(value)
+  if (key === 'frameText') return value.length <= 40
   return true
 }
 
