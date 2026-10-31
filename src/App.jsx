@@ -597,18 +597,21 @@ export default function App() {
                       <span className="action-format">{settings.downloadFormat.toUpperCase()}</span>
                     </button>
                   ) : copyButton}
-                  {shareFirst && copyButton}
-                  <button
-                    className={`action-btn ${shareFirst ? '' : 'action-primary'}`}
-                    onClick={handleDownload}
-                    aria-label={t('Download {format}', { format: settings.downloadFormat.toUpperCase() })}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-                      <path d="M8 2v8M4 7l4 4 4-4M2 13.5h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    {shareFirst ? t('Save') : t('Download')}
-                    {!shareFirst && <span className="action-format">{settings.downloadFormat.toUpperCase()}</span>}
-                  </button>
+                  {/* The share sheet already offers "Save Image", so phones
+                      that can share files don't need a separate Save. */}
+                  {shareFirst ? copyButton : (
+                    <button
+                      className="action-btn action-primary"
+                      onClick={handleDownload}
+                      aria-label={t('Download {format}', { format: settings.downloadFormat.toUpperCase() })}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 2v8M4 7l4 4 4-4M2 13.5h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      {t('Download')}
+                      <span className="action-format">{settings.downloadFormat.toUpperCase()}</span>
+                    </button>
+                  )}
                 </div>
                 <button className="link-btn print-link" onClick={openPrint}>
                   {t('Print a sheet of stickers')}

@@ -11,7 +11,6 @@ export default {
   'QR code content': 'Inhalt des QR-Codes',
   'Copy': 'Kopieren',
   'Share': 'Teilen',
-  'Save': 'Sichern',
   'Download': 'Herunterladen',
   'Download {format}': '{format} herunterladen',
   'Print a sheet of stickers': 'Einen Bogen Sticker drucken',
